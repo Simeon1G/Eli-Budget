@@ -7,14 +7,18 @@ import {
   type AccountId,
 } from "@/lib/budget-types";
 import { bg } from "@/lib/bg";
+import { formatMonthLabelBg } from "@/lib/month-key";
 import { useBudget } from "./budget-provider";
 import { EntrySubsection } from "./entry-subsection";
 import { TemplatesSection } from "./templates-section";
 import { FinancialOverview } from "./financial-overview";
+import { MonthNavigator } from "./month-navigator";
+import { TaxInsuranceCard } from "./tax-insurance-card";
 import { TransferSection } from "./transfer-section";
 
 export function BudgetDashboard() {
-  const { data, ready, resetAccount } = useBudget();
+  const { data, ready, resetAccount, selectedMonth, taxInsurance, setTaxInsurance } =
+    useBudget();
   const [account, setAccount] = useState<AccountId>("business");
 
   const book = data[account];
@@ -91,6 +95,8 @@ export function BudgetDashboard() {
         </div>
       </header>
 
+      <MonthNavigator />
+
       <FinancialOverview />
 
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -127,7 +133,15 @@ export function BudgetDashboard() {
         <button
           type="button"
           onClick={() => {
-            if (confirm(bg.dashboard.resetConfirm(meta.short, meta.label))) {
+            if (
+              confirm(
+                bg.dashboard.resetConfirmMonth(
+                  meta.short,
+                  meta.label,
+                  formatMonthLabelBg(selectedMonth),
+                ),
+              )
+            ) {
               resetAccount(account);
             }
           }}
@@ -136,6 +150,12 @@ export function BudgetDashboard() {
           {bg.dashboard.reset}
         </button>
       </div>
+
+      {account === "business" ? (
+        <div className="mb-8">
+          <TaxInsuranceCard value={taxInsurance} onChange={setTaxInsurance} />
+        </div>
+      ) : null}
 
       <TemplatesSection account={account} />
 

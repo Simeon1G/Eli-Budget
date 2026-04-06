@@ -21,6 +21,8 @@ export type AccountBook = {
   expenses: BudgetEntry[];
 };
 
+export type PersistedBudget = Record<AccountId, AccountBook>;
+
 /** Saved recurring line — same shape as an entry, without being on the ledger yet */
 export type BudgetTemplate = {
   id: string;
@@ -49,6 +51,9 @@ export const ACCOUNTS: Record<
 
 export const STORAGE_KEY = "budget-tracker-v1";
 
+/** Per-month budget + tax insurance (see budget-storage.ts) */
+export const STORAGE_KEY_V2 = "budget-tracker-v2";
+
 export const TEMPLATES_STORAGE_KEY = "budget-templates-v1";
 
 export const TRANSFERS_STORAGE_KEY = "budget-transfers-v1";
@@ -59,6 +64,8 @@ export type SalaryTransfer = {
   amount: number;
   note: string;
   at: string;
+  /** Кой месечен бюджет е засегнат (YYYY-MM); липсва при стари записи */
+  monthKey?: string;
   businessExpenseId?: string;
   personalIncomeId?: string;
 };

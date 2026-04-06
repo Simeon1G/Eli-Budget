@@ -24,13 +24,17 @@ type Props = {
 };
 
 export function TransferSection({ account }: Props) {
-  const { transfers, addSalaryTransfer, removeSalaryTransfer } = useBudget();
+  const {
+    transfersForSelectedMonth,
+    addSalaryTransfer,
+    removeSalaryTransfer,
+  } = useBudget();
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
 
   const total = useMemo(
-    () => transfers.reduce((s, t) => s + t.amount, 0),
-    [transfers],
+    () => transfersForSelectedMonth.reduce((s, t) => s + t.amount, 0),
+    [transfersForSelectedMonth],
   );
 
   const isBusiness = account === "business";
@@ -119,12 +123,12 @@ export function TransferSection({ account }: Props) {
       )}
 
       <ul className="mt-4 divide-y divide-stone-100 dark:divide-stone-800">
-        {transfers.length === 0 ? (
+        {transfersForSelectedMonth.length === 0 ? (
           <li className="py-6 text-center text-sm text-stone-400">
             {bg.transfer.empty}
           </li>
         ) : (
-          transfers.map((t) => (
+          transfersForSelectedMonth.map((t) => (
             <li
               key={t.id}
               className="flex flex-wrap items-center justify-between gap-2 py-3 text-sm first:pt-0"

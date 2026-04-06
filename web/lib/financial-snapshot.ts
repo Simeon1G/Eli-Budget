@@ -6,19 +6,34 @@ export type FinancialSnapshot = {
   income: number;
   expenses: number;
   taxReserve: number;
+  /** Бизнес: сума от картата „Данъци и осигуровки“ (месечно); не в списъка „Разходи“ */
+  businessTaxInsurance?: number;
   freeMoney: number;
 };
 
-/** Delliesign: 15% of monthly business income */
-export function snapshotBusiness(book: AccountBook): FinancialSnapshot {
+/**
+ * Delliesign: 15% резерв върху пълния месечен бизнес приход.
+ * `businessTaxInsuranceMonthly` се изважда от прихода (не е в разходите и не намалява основата за 15%).
+ */
+export function snapshotBusiness(
+  book: AccountBook,
+  businessTaxInsuranceMonthly = 0,
+): FinancialSnapshot {
   const income = sumMonthly(book.incomes);
   const expenses = sumMonthly(book.expenses);
   const taxReserve = monthlyTaxReserve(income);
+  const bt = Math.max(
+    0,
+    Number.isFinite(businessTaxInsuranceMonthly)
+      ? businessTaxInsuranceMonthly
+      : 0,
+  );
   return {
     income,
     expenses,
     taxReserve,
-    freeMoney: income - expenses - taxReserve,
+    businessTaxInsurance: bt,
+    freeMoney: income - expenses - bt - taxReserve,
   };
 }
 

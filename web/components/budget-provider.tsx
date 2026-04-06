@@ -15,14 +15,25 @@ import type {
   EntryKind,
   Flow,
   Frequency,
+  PersistedBudget,
   SalaryTransfer,
 } from "@/lib/budget-types";
-import { loadBudget, saveBudget, type PersistedBudget } from "@/lib/budget-storage";
+import { emptyBook } from "@/lib/budget-types";
+import {
+  emptyMonthPayload,
+  ensureMonth,
+  loadMonthsState,
+  saveMonthsState,
+  type MonthPayload,
+  type MonthsState,
+} from "@/lib/budget-storage";
 import { loadTemplates, saveTemplates, type PersistedTemplates } from "@/lib/template-storage";
 import { loadTransfers, saveTransfers } from "@/lib/transfer-storage";
-import { emptyBook } from "@/lib/budget-types";
 import { bg } from "@/lib/bg";
+import { currentMonthKey, isoToMonthKey } from "@/lib/month-key";
 import { newId } from "@/lib/id";
+import type { TaxInsuranceFields } from "@/lib/tax-insurance-types";
+import { sumTaxInsuranceMonthly } from "@/lib/tax-insurance-types";
 
 export type ApplyRow = {
   flow: Flow;
@@ -34,6 +45,14 @@ export type ApplyRow = {
 
 type BudgetContextValue = {
   data: PersistedBudget;
+  taxInsurance: TaxInsuranceFields;
+  businessTaxInsuranceMonthly: number;
+  setTaxInsurance: (next: TaxInsuranceFields) => void;
+  selectedMonth: string;
+  setSelectedMonth: (key: string) => void;
+  sortedMonthKeys: string[];
+  addEmptyMonth: (key: string) => void;
+  isCurrentCalendarMonth: boolean;
   templates: PersistedTemplates;
   ready: boolean;
   addEntry: (account: AccountId, flow: Flow, entry: BudgetEntry) => void;
@@ -54,6 +73,7 @@ type BudgetContextValue = {
   removeTemplate: (account: AccountId, id: string) => void;
   applyTemplateRows: (account: AccountId, rows: ApplyRow[]) => void;
   transfers: SalaryTransfer[];
+  transfersForSelectedMonth: SalaryTransfer[];
   addSalaryTransfer: (amount: number, note: string) => void;
   removeSalaryTransfer: (id: string) => void;
 };
@@ -65,27 +85,40 @@ const emptyTemplates: PersistedTemplates = {
   personal: [],
 };
 
-export function BudgetProvider({ children }: { children: React.ReactNode }) {
-  const [data, setData] = useState<PersistedBudget>(() => ({
-    business: emptyBook(),
-    personal: emptyBook(),
+function sortMonthKeysDesc(keys: string[]): string[] {
+  return [...keys].sort((a, b) => b.localeCompare(a));
+}
+
+function normalizeTransfersOnLoad(list: SalaryTransfer[]): SalaryTransfer[] {
+  return list.map((t) => ({
+    ...t,
+    monthKey: t.monthKey ?? isoToMonthKey(t.at),
   }));
+}
+
+export function BudgetProvider({ children }: { children: React.ReactNode }) {
+  const [months, setMonths] = useState<MonthsState>({});
+  const [selectedMonth, setSelectedMonthState] = useState(currentMonthKey());
   const [templates, setTemplates] =
     useState<PersistedTemplates>(emptyTemplates);
   const [transfers, setTransfers] = useState<SalaryTransfer[]>([]);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    setData(loadBudget());
+    const loaded = loadMonthsState();
+    const cm = currentMonthKey();
+    ensureMonth(loaded, cm);
+    setMonths(loaded);
+    setSelectedMonthState(cm);
     setTemplates(loadTemplates());
-    setTransfers(loadTransfers());
+    setTransfers(normalizeTransfersOnLoad(loadTransfers()));
     setReady(true);
   }, []);
 
   useEffect(() => {
     if (!ready) return;
-    saveBudget(data);
-  }, [data, ready]);
+    saveMonthsState(months);
+  }, [months, ready]);
 
   useEffect(() => {
     if (!ready) return;
@@ -97,13 +130,82 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     saveTransfers(transfers);
   }, [transfers, ready]);
 
-  const addEntry = useCallback(
-    (account: AccountId, flow: Flow, entry: BudgetEntry) => {
-      setData((prev) => {
-        const book = prev[account];
-        const key = flow === "income" ? "incomes" : "expenses";
+  const setSelectedMonth = useCallback((key: string) => {
+    if (!/^\d{4}-\d{2}$/.test(key)) return;
+    setMonths((prev) => {
+      const next = { ...prev };
+      ensureMonth(next, key);
+      return next;
+    });
+    setSelectedMonthState(key);
+  }, []);
+
+  const addEmptyMonth = useCallback((key: string) => {
+    if (!/^\d{4}-\d{2}$/.test(key)) return;
+    setMonths((prev) => {
+      if (prev[key]) return prev;
+      return { ...prev, [key]: emptyMonthPayload() };
+    });
+    setSelectedMonthState(key);
+  }, []);
+
+  const currentPayload: MonthPayload = useMemo(() => {
+    return months[selectedMonth] ?? emptyMonthPayload();
+  }, [months, selectedMonth]);
+
+  const data = currentPayload.budget;
+  const taxInsurance = currentPayload.taxInsurance;
+
+  const setTaxInsurance = useCallback((next: TaxInsuranceFields) => {
+    setMonths((prev) => {
+      const p = prev[selectedMonth] ?? emptyMonthPayload();
+      return {
+        ...prev,
+        [selectedMonth]: { ...p, taxInsurance: next },
+      };
+    });
+  }, [selectedMonth]);
+
+  const businessTaxInsuranceMonthly = useMemo(
+    () => sumTaxInsuranceMonthly(taxInsurance),
+    [taxInsurance],
+  );
+
+  const sortedMonthKeys = useMemo(
+    () => sortMonthKeysDesc(Object.keys(months)),
+    [months],
+  );
+
+  const isCurrentCalendarMonth = selectedMonth === currentMonthKey();
+
+  const transfersForSelectedMonth = useMemo(
+    () =>
+      transfers.filter(
+        (t) => (t.monthKey ?? isoToMonthKey(t.at)) === selectedMonth,
+      ),
+    [transfers, selectedMonth],
+  );
+
+  const patchMonthBudget = useCallback(
+    (fn: (book: PersistedBudget) => PersistedBudget) => {
+      setMonths((prev) => {
+        const p = prev[selectedMonth] ?? emptyMonthPayload();
         return {
           ...prev,
+          [selectedMonth]: { ...p, budget: fn(p.budget) },
+        };
+      });
+    },
+    [selectedMonth],
+  );
+
+  const addEntry = useCallback(
+    (account: AccountId, flow: Flow, entry: BudgetEntry) => {
+      patchMonthBudget((budget) => {
+        const book = budget[account];
+        const key = flow === "income" ? "incomes" : "expenses";
+        return {
+          ...budget,
           [account]: {
             ...book,
             [key]: [...book[key], entry],
@@ -111,16 +213,16 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
         };
       });
     },
-    [],
+    [patchMonthBudget],
   );
 
   const updateEntry = useCallback(
     (account: AccountId, flow: Flow, id: string, patch: Partial<BudgetEntry>) => {
-      setData((prev) => {
-        const book = prev[account];
+      patchMonthBudget((budget) => {
+        const book = budget[account];
         const key = flow === "income" ? "incomes" : "expenses";
         return {
-          ...prev,
+          ...budget,
           [account]: {
             ...book,
             [key]: book[key].map((e) =>
@@ -130,16 +232,16 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
         };
       });
     },
-    [],
+    [patchMonthBudget],
   );
 
   const removeEntry = useCallback(
     (account: AccountId, flow: Flow, id: string) => {
-      setData((prev) => {
-        const book = prev[account];
+      patchMonthBudget((budget) => {
+        const book = budget[account];
         const k = flow === "income" ? "incomes" : "expenses";
         return {
-          ...prev,
+          ...budget,
           [account]: {
             ...book,
             [k]: book[k].filter((e) => e.id !== id),
@@ -147,15 +249,18 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
         };
       });
     },
-    [],
+    [patchMonthBudget],
   );
 
-  const resetAccount = useCallback((account: AccountId) => {
-    setData((prev) => ({
-      ...prev,
-      [account]: emptyBook(),
-    }));
-  }, []);
+  const resetAccount = useCallback(
+    (account: AccountId) => {
+      patchMonthBudget((budget) => ({
+        ...budget,
+        [account]: emptyBook(),
+      }));
+    },
+    [patchMonthBudget],
+  );
 
   const addTemplate = useCallback((account: AccountId, template: BudgetTemplate) => {
     setTemplates((prev) => ({
@@ -187,87 +292,110 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     }));
   }, []);
 
-  const addSalaryTransfer = useCallback((amount: number, note: string) => {
-    if (!Number.isFinite(amount) || amount <= 0) return;
-    const noteTrim = note.trim();
-    const transferId = newId();
-    const businessExpenseId = newId();
-    const personalIncomeId = newId();
-    const expenseLabel =
-      noteTrim.length > 0
-        ? `${bg.transfer.entryBusinessExpense} (${noteTrim})`
-        : bg.transfer.entryBusinessExpense;
-    const incomeLabel =
-      noteTrim.length > 0
-        ? `${bg.transfer.entryPersonalIncome} (${noteTrim})`
-        : bg.transfer.entryPersonalIncome;
+  const addSalaryTransfer = useCallback(
+    (amount: number, note: string) => {
+      if (!Number.isFinite(amount) || amount <= 0) return;
+      const noteTrim = note.trim();
+      const transferId = newId();
+      const businessExpenseId = newId();
+      const personalIncomeId = newId();
+      const expenseLabel =
+        noteTrim.length > 0
+          ? `${bg.transfer.entryBusinessExpense} (${noteTrim})`
+          : bg.transfer.entryBusinessExpense;
+      const incomeLabel =
+        noteTrim.length > 0
+          ? `${bg.transfer.entryPersonalIncome} (${noteTrim})`
+          : bg.transfer.entryPersonalIncome;
 
-    const businessExpense: BudgetEntry = {
-      id: businessExpenseId,
-      kind: "fixed",
-      label: expenseLabel,
-      amount,
-      frequency: "monthly",
-    };
-    const personalIncome: BudgetEntry = {
-      id: personalIncomeId,
-      kind: "fixed",
-      label: incomeLabel,
-      amount,
-      frequency: "monthly",
-    };
+      const businessExpense: BudgetEntry = {
+        id: businessExpenseId,
+        kind: "fixed",
+        label: expenseLabel,
+        amount,
+        frequency: "monthly",
+      };
+      const personalIncome: BudgetEntry = {
+        id: personalIncomeId,
+        kind: "fixed",
+        label: incomeLabel,
+        amount,
+        frequency: "monthly",
+      };
 
-    const t: SalaryTransfer = {
-      id: transferId,
-      amount,
-      note: noteTrim,
-      at: new Date().toISOString(),
-      businessExpenseId,
-      personalIncomeId,
-    };
+      const t: SalaryTransfer = {
+        id: transferId,
+        amount,
+        note: noteTrim,
+        at: new Date().toISOString(),
+        monthKey: selectedMonth,
+        businessExpenseId,
+        personalIncomeId,
+      };
 
-    setData((prev) => ({
-      ...prev,
-      business: {
-        ...prev.business,
-        expenses: [...prev.business.expenses, businessExpense],
-      },
-      personal: {
-        ...prev.personal,
-        incomes: [...prev.personal.incomes, personalIncome],
-      },
-    }));
-    setTransfers((prev) => [t, ...prev]);
-  }, []);
+      setMonths((prev) => {
+        const p = prev[selectedMonth] ?? emptyMonthPayload();
+        return {
+          ...prev,
+          [selectedMonth]: {
+            ...p,
+            budget: {
+              ...p.budget,
+              business: {
+                ...p.budget.business,
+                expenses: [...p.budget.business.expenses, businessExpense],
+              },
+              personal: {
+                ...p.budget.personal,
+                incomes: [...p.budget.personal.incomes, personalIncome],
+              },
+            },
+          },
+        };
+      });
+      setTransfers((prev) => [t, ...prev]);
+    },
+    [selectedMonth],
+  );
 
   const removeSalaryTransfer = useCallback((id: string) => {
-    let businessExpenseId: string | undefined;
-    let personalIncomeId: string | undefined;
     setTransfers((prev) => {
       const found = prev.find((x) => x.id === id);
-      businessExpenseId = found?.businessExpenseId;
-      personalIncomeId = found?.personalIncomeId;
+      if (!found) return prev;
+      const mk = found.monthKey ?? isoToMonthKey(found.at);
+      const bid = found.businessExpenseId;
+      const pid = found.personalIncomeId;
+      if (bid && pid) {
+        setMonths((mPrev) => {
+          const p = mPrev[mk];
+          if (!p) return mPrev;
+          return {
+            ...mPrev,
+            [mk]: {
+              ...p,
+              budget: {
+                ...p.budget,
+                business: {
+                  ...p.budget.business,
+                  expenses: p.budget.business.expenses.filter((e) => e.id !== bid),
+                },
+                personal: {
+                  ...p.budget.personal,
+                  incomes: p.budget.personal.incomes.filter((e) => e.id !== pid),
+                },
+              },
+            },
+          };
+        });
+      }
       return prev.filter((x) => x.id !== id);
     });
-    if (businessExpenseId && personalIncomeId) {
-      setData((prev) => ({
-        ...prev,
-        business: {
-          ...prev.business,
-          expenses: prev.business.expenses.filter((e) => e.id !== businessExpenseId),
-        },
-        personal: {
-          ...prev.personal,
-          incomes: prev.personal.incomes.filter((e) => e.id !== personalIncomeId),
-        },
-      }));
-    }
   }, []);
 
   const applyTemplateRows = useCallback(
     (account: AccountId, rows: ApplyRow[]) => {
-      setData((prev) => {
-        const book = prev[account];
+      patchMonthBudget((budget) => {
+        const book = budget[account];
         const incomes = [...book.incomes];
         const expenses = [...book.expenses];
         for (const r of rows) {
@@ -284,19 +412,26 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
           else expenses.push(entry);
         }
         return {
-          ...prev,
+          ...budget,
           [account]: { incomes, expenses },
         };
       });
     },
-    [],
+    [patchMonthBudget],
   );
 
   const value = useMemo(
     () => ({
       data,
+      taxInsurance,
+      businessTaxInsuranceMonthly,
+      setTaxInsurance,
+      selectedMonth,
+      setSelectedMonth,
+      sortedMonthKeys,
+      addEmptyMonth,
+      isCurrentCalendarMonth,
       templates,
-      transfers,
       ready,
       addEntry,
       updateEntry,
@@ -306,13 +441,22 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       updateTemplate,
       removeTemplate,
       applyTemplateRows,
+      transfers,
+      transfersForSelectedMonth,
       addSalaryTransfer,
       removeSalaryTransfer,
     }),
     [
       data,
+      taxInsurance,
+      businessTaxInsuranceMonthly,
+      setTaxInsurance,
+      selectedMonth,
+      setSelectedMonth,
+      sortedMonthKeys,
+      addEmptyMonth,
+      isCurrentCalendarMonth,
       templates,
-      transfers,
       ready,
       addEntry,
       updateEntry,
@@ -322,6 +466,8 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       updateTemplate,
       removeTemplate,
       applyTemplateRows,
+      transfers,
+      transfersForSelectedMonth,
       addSalaryTransfer,
       removeSalaryTransfer,
     ],

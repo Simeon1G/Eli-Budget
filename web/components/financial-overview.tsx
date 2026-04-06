@@ -11,6 +11,7 @@ import {
   snapshotPersonal,
   type FinancialSnapshot,
 } from "@/lib/financial-snapshot";
+import { BUSINESS_TAX_RESERVE_RATE } from "@/lib/tax-reserve";
 import { useBudget } from "./budget-provider";
 
 function MetricRow({
@@ -150,13 +151,282 @@ function ToggleMetricRow({
   );
 }
 
+function TaxReserveToggleRow({
+  snap,
+  taxSub,
+  accent,
+  open,
+  onToggle,
+  controlsId,
+}: {
+  snap: FinancialSnapshot;
+  taxSub?: string;
+  accent: "orange" | "rose";
+  open: boolean;
+  onToggle: () => void;
+  controlsId: string;
+}) {
+  const btnStyle =
+    accent === "orange"
+      ? "border-orange-300/90 text-orange-900 hover:bg-orange-50/90 dark:border-orange-700 dark:text-orange-100 dark:hover:bg-orange-950/50"
+      : "border-rose-300/90 text-rose-900 hover:bg-rose-50/90 dark:border-rose-800 dark:text-rose-100 dark:hover:bg-rose-950/40";
+
+  const taxValueClass =
+    accent === "orange"
+      ? "text-orange-800 dark:text-orange-300"
+      : "text-amber-800 dark:text-amber-300";
+
+  const ratePct = Math.round(BUSINESS_TAX_RESERVE_RATE * 100);
+  const base = snap.income;
+  const reserve = snap.taxReserve;
+
+  return (
+    <div className="border-b border-stone-100 dark:border-stone-800">
+      <div className="flex flex-wrap items-end justify-between gap-2 py-2">
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-medium uppercase tracking-wide text-stone-500">
+            {bg.financial.taxReserve}
+          </p>
+          {taxSub ? (
+            <p className="mt-0.5 text-[11px] text-stone-400 dark:text-stone-500">
+              {taxSub}
+            </p>
+          ) : null}
+        </div>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <p
+            className={`text-right text-base font-semibold tabular-nums ${taxValueClass}`}
+          >
+            {formatMoney(reserve)}
+          </p>
+          <button
+            type="button"
+            aria-expanded={open}
+            aria-controls={controlsId}
+            onClick={onToggle}
+            className={`shrink-0 rounded-md border bg-white/80 px-2 py-1 text-[11px] font-semibold shadow-sm dark:bg-stone-900/60 ${btnStyle}`}
+          >
+            {open ? bg.dashboard.breakdownHide : bg.dashboard.breakdownShow}
+          </button>
+        </div>
+      </div>
+      {open ? (
+        <div
+          id={controlsId}
+          role="region"
+          aria-label={bg.financial.taxReserveBreakdownRegion}
+          className="pb-2"
+        >
+          <div className="space-y-2 border-t border-stone-100 pt-2 text-xs leading-relaxed dark:border-stone-800">
+            <p className="text-stone-600 dark:text-stone-400">
+              {bg.financial.taxReserveBreakdownExplain}
+            </p>
+            <ul className="space-y-1.5 rounded-lg bg-stone-50/90 px-3 py-2.5 dark:bg-stone-950/80">
+              <li className="flex justify-between gap-3">
+                <span className="text-stone-600 dark:text-stone-400">
+                  {bg.financial.taxReserveBaseLabel}
+                </span>
+                <span className="shrink-0 tabular-nums font-medium text-stone-900 dark:text-stone-100">
+                  {formatMoney(base)}
+                  <span className="ml-1 font-normal text-stone-500 dark:text-stone-400">
+                    {bg.entry.perMonth}
+                  </span>
+                </span>
+              </li>
+              <li className="flex justify-between gap-3">
+                <span className="text-stone-600 dark:text-stone-400">
+                  {bg.financial.taxReserveRateLabel}
+                </span>
+                <span className="shrink-0 tabular-nums font-medium text-stone-900 dark:text-stone-100">
+                  {ratePct}%
+                </span>
+              </li>
+              <li className="flex justify-between gap-3 border-t border-stone-200 pt-2 dark:border-stone-700">
+                <span className="font-semibold text-stone-700 dark:text-stone-200">
+                  {bg.financial.taxReserveResultLabel}
+                </span>
+                <span
+                  className={`shrink-0 tabular-nums font-semibold ${taxValueClass}`}
+                >
+                  {formatMoney(reserve)}
+                  <span className="ml-1 font-normal text-stone-500 dark:text-stone-400">
+                    {bg.entry.perMonth}
+                  </span>
+                </span>
+              </li>
+            </ul>
+            <p className="rounded-md bg-orange-50/80 px-2 py-1.5 font-mono text-[11px] text-stone-800 dark:bg-orange-950/40 dark:text-stone-200">
+              {ratePct}% × {formatMoney(base)} = {formatMoney(reserve)}
+            </p>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function FreeMoneyToggleRow({
+  snap,
+  cardKey,
+  accent,
+  open,
+  onToggle,
+  controlsId,
+}: {
+  snap: FinancialSnapshot;
+  cardKey: "business" | "personal";
+  accent: "orange" | "rose";
+  open: boolean;
+  onToggle: () => void;
+  controlsId: string;
+}) {
+  const btnStyle =
+    accent === "orange"
+      ? "border-orange-300/90 text-orange-900 hover:bg-orange-50/90 dark:border-orange-700 dark:text-orange-100 dark:hover:bg-orange-950/50"
+      : "border-rose-300/90 text-rose-900 hover:bg-rose-50/90 dark:border-rose-800 dark:text-rose-100 dark:hover:bg-rose-950/40";
+
+  const income = snap.income;
+  const expenses = snap.expenses;
+  const taxIns = snap.businessTaxInsurance ?? 0;
+  const reserve = snap.taxReserve;
+  const free = snap.freeMoney;
+
+  const formula =
+    cardKey === "business"
+      ? bg.financial.freeMoneyFormulaBusiness
+      : bg.financial.freeMoneyFormulaPersonal;
+
+  const moneyClass =
+    free >= 0
+      ? "text-emerald-600 dark:text-emerald-400"
+      : "text-rose-600 dark:text-rose-400";
+
+  const rowClass = "flex justify-between gap-3 text-xs sm:text-sm";
+  const labelMuted = "text-stone-600 dark:text-stone-400";
+  const valPlus = "tabular-nums font-medium text-emerald-600 dark:text-emerald-400";
+  const valMinus = "tabular-nums font-medium text-rose-600 dark:text-rose-400";
+  const valResult = `tabular-nums font-semibold ${moneyClass}`;
+
+  let formulaMono = "";
+  if (cardKey === "business") {
+    formulaMono = `${formatMoney(income)} − ${formatMoney(expenses)} − ${formatMoney(taxIns)} − ${formatMoney(reserve)} = ${formatMoney(free)}`;
+  } else {
+    formulaMono = `${formatMoney(income)} − ${formatMoney(expenses)} = ${formatMoney(free)}`;
+  }
+
+  return (
+    <div className="mt-2 rounded-xl bg-stone-50 px-3 py-2.5 dark:bg-stone-950/80">
+      <div className="flex flex-wrap items-end justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-semibold uppercase tracking-wide text-stone-600 dark:text-stone-400">
+            {bg.financial.freeMoney}
+          </p>
+          <p className="mt-1 text-[11px] leading-snug text-stone-500 dark:text-stone-400">
+            {formula}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <p className={`text-right text-lg font-semibold tabular-nums ${moneyClass}`}>
+            {formatMoney(free)}
+          </p>
+          <button
+            type="button"
+            aria-expanded={open}
+            aria-controls={controlsId}
+            onClick={onToggle}
+            className={`shrink-0 rounded-md border bg-white/80 px-2 py-1 text-[11px] font-semibold shadow-sm dark:bg-stone-900/60 ${btnStyle}`}
+          >
+            {open ? bg.dashboard.breakdownHide : bg.dashboard.breakdownShow}
+          </button>
+        </div>
+      </div>
+      {open ? (
+        <div
+          id={controlsId}
+          role="region"
+          aria-label={bg.financial.freeMoneyBreakdownRegion}
+          className="mt-3 border-t border-stone-200 pt-3 dark:border-stone-700"
+        >
+          <ul className="space-y-2">
+            <li className={rowClass}>
+              <span className={labelMuted}>{bg.financial.freeMoneyStepIncome}</span>
+              <span className={valPlus}>
+                + {formatMoney(income)}
+                <span className="ml-1 font-normal text-stone-500 dark:text-stone-400">
+                  {bg.entry.perMonth}
+                </span>
+              </span>
+            </li>
+            <li className={rowClass}>
+              <span className={labelMuted}>{bg.financial.freeMoneyStepExpenses}</span>
+              <span className={valMinus}>
+                − {formatMoney(expenses)}
+                <span className="ml-1 font-normal text-stone-500 dark:text-stone-400">
+                  {bg.entry.perMonth}
+                </span>
+              </span>
+            </li>
+            {cardKey === "business" ? (
+              <>
+                <li className={rowClass}>
+                  <span className={labelMuted}>
+                    {bg.financial.freeMoneyStepTaxInsurance}
+                  </span>
+                  <span className={valMinus}>
+                    − {formatMoney(taxIns)}
+                    <span className="ml-1 font-normal text-stone-500 dark:text-stone-400">
+                      {bg.entry.perMonth}
+                    </span>
+                  </span>
+                </li>
+                <li className={rowClass}>
+                  <span className={labelMuted}>
+                    {bg.financial.freeMoneyStepReserve}
+                  </span>
+                  <span className={valMinus}>
+                    − {formatMoney(reserve)}
+                    <span className="ml-1 font-normal text-stone-500 dark:text-stone-400">
+                      {bg.entry.perMonth}
+                    </span>
+                  </span>
+                </li>
+              </>
+            ) : null}
+            <li
+              className={`${rowClass} border-t border-stone-200 pt-2 dark:border-stone-700`}
+            >
+              <span className="font-semibold text-stone-800 dark:text-stone-100">
+                {bg.financial.freeMoneyStepResult}
+              </span>
+              <span className={valResult}>
+                {formatMoney(free)}
+                <span className="ml-1 font-normal text-stone-500 dark:text-stone-400">
+                  {bg.entry.perMonth}
+                </span>
+              </span>
+            </li>
+          </ul>
+          <p
+            className={`mt-3 rounded-md px-2 py-1.5 font-mono text-[11px] leading-relaxed ${
+              accent === "orange"
+                ? "bg-orange-50/90 text-stone-800 dark:bg-orange-950/40 dark:text-stone-200"
+                : "bg-rose-50/90 text-stone-800 dark:bg-rose-950/35 dark:text-stone-200"
+            }`}
+          >
+            {formulaMono}
+          </p>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function SnapshotCard({
   title,
   subtitle,
   snap,
   accent,
   taxSub,
-  showAnnualHint,
   incomes,
   expenses,
   cardKey,
@@ -166,13 +436,14 @@ function SnapshotCard({
   snap: FinancialSnapshot;
   accent: "orange" | "rose";
   taxSub?: string;
-  showAnnualHint?: boolean;
   incomes: BudgetEntry[];
   expenses: BudgetEntry[];
   cardKey: "business" | "personal";
 }) {
   const [incomeOpen, setIncomeOpen] = useState(false);
   const [expenseOpen, setExpenseOpen] = useState(false);
+  const [taxReserveOpen, setTaxReserveOpen] = useState(false);
+  const [freeMoneyOpen, setFreeMoneyOpen] = useState(false);
 
   const border =
     accent === "orange"
@@ -187,9 +458,6 @@ function SnapshotCard({
     accent === "orange"
       ? "text-orange-800 dark:text-orange-300"
       : "text-amber-800 dark:text-amber-300";
-
-  const annualTax =
-    showAnnualHint && snap.taxReserve > 0 ? snap.taxReserve * 12 : null;
 
   return (
     <div
@@ -222,47 +490,50 @@ function SnapshotCard({
           controlsId={`${cardKey}-expense-breakdown`}
           regionLabel={bg.dashboard.breakdownRegionExpense}
         />
-        <MetricRow
-          label={bg.financial.taxReserve}
-          value={snap.taxReserve}
-          valueClass={taxValueClass}
-          sub={taxSub}
-        />
-        {annualTax != null ? (
-          <p className="mb-0 text-right text-[11px] text-stone-400 dark:text-stone-500">
-            {bg.financial.annualHint(formatMoney(annualTax))}
-          </p>
+        {cardKey === "business" && snap.businessTaxInsurance !== undefined ? (
+          <MetricRow
+            label={bg.financial.businessTaxInsuranceLabel}
+            value={snap.businessTaxInsurance}
+            valueClass="text-amber-800 dark:text-amber-300"
+            sub={bg.financial.businessTaxInsuranceSub}
+          />
         ) : null}
-        <div className="mt-2 rounded-xl bg-stone-50 px-3 py-2.5 dark:bg-stone-950/80">
-          <div className="flex items-baseline justify-between gap-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-stone-600 dark:text-stone-400">
-              {bg.financial.freeMoney}
-            </p>
-            <p
-              className={`text-lg font-semibold tabular-nums ${
-                snap.freeMoney >= 0
-                  ? "text-emerald-600 dark:text-emerald-400"
-                  : "text-rose-600 dark:text-rose-400"
-              }`}
-            >
-              {formatMoney(snap.freeMoney)}
-            </p>
-          </div>
-          <p className="mt-1 text-[11px] leading-snug text-stone-500 dark:text-stone-400">
-            {bg.financial.freeMoneyFormula}
-          </p>
-        </div>
+        {cardKey === "business" ? (
+          <TaxReserveToggleRow
+            snap={snap}
+            taxSub={taxSub}
+            accent={accent}
+            open={taxReserveOpen}
+            onToggle={() => setTaxReserveOpen((v) => !v)}
+            controlsId={`${cardKey}-tax-reserve-breakdown`}
+          />
+        ) : (
+          <MetricRow
+            label={bg.financial.taxReserve}
+            value={snap.taxReserve}
+            valueClass={taxValueClass}
+            sub={taxSub}
+          />
+        )}
+        <FreeMoneyToggleRow
+          snap={snap}
+          cardKey={cardKey}
+          accent={accent}
+          open={freeMoneyOpen}
+          onToggle={() => setFreeMoneyOpen((v) => !v)}
+          controlsId={`${cardKey}-free-money-breakdown`}
+        />
       </div>
     </div>
   );
 }
 
 export function FinancialOverview() {
-  const { data, ready } = useBudget();
+  const { data, ready, businessTaxInsuranceMonthly } = useBudget();
 
   const business = useMemo(
-    () => snapshotBusiness(data.business),
-    [data.business],
+    () => snapshotBusiness(data.business, businessTaxInsuranceMonthly),
+    [data.business, businessTaxInsuranceMonthly],
   );
   const personal = useMemo(
     () => snapshotPersonal(data.personal),
@@ -292,7 +563,6 @@ export function FinancialOverview() {
           snap={business}
           accent="orange"
           taxSub={bg.financial.taxSubBusiness}
-          showAnnualHint
           incomes={data.business.incomes}
           expenses={data.business.expenses}
           cardKey="business"

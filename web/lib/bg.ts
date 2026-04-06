@@ -59,6 +59,8 @@ export const bg = {
     accountTabs: "Сметка",
     resetConfirm: (short: string, label: string) =>
       `Изчистване на всички приходи и разходи за ${short} (${label})?`,
+    resetConfirmMonth: (short: string, label: string, monthLabel: string) =>
+      `Изчистване на всички приходи и разходи за ${short} (${label}) за ${monthLabel}?`,
     reset: "Нулирай тази сметка",
     incomes: "Приходи",
     expenses: "Разходи",
@@ -79,6 +81,21 @@ export const bg = {
     breakdownRegionExpense: "Детайли по разходите",
   },
 
+  months: {
+    title: "Месеци",
+    intro:
+      "Всеки месец има отделен бюджет. Списъкът е по години; по-новите месеци са по-нагоре. Календарният текущ месец е отбелязан.",
+    selectedLabel: (monthLabel: string) => `Преглед: ${monthLabel}`,
+    notCalendarMonth: "гледате друг месец",
+    currentBadge: "Текущ",
+    yearHeading: (y: number) => `${y} г.`,
+    monthCountOne: "месец",
+    monthCountMany: "месеца",
+    pickMonth: "Месец",
+    addMonth: "Добави или отвори",
+    addNextMonth: "Празен следващ месец",
+  },
+
   entry: {
     perMonth: "/мес.",
     estPerMonth: " оцен./мес.",
@@ -92,15 +109,44 @@ export const bg = {
   financial: {
     title: "Финансов преглед",
     intro:
-      "Месечни стойности (нормализирани). Резервът за данъци е само върху бизнес приходите (15%).",
+      "Стойностите са за избрания месец (месечни еквиваленти). За бизнеса: данъци и осигуровките от картата по-долу не са в „Разходи“ и не намаляват основата за 15% резерв — изваждат се отделно от прихода при свободните пари.",
     totalIncome: "Общ приход",
     totalExpenses: "Общ разход",
+    businessTaxInsuranceLabel: "Данъци и осигуровки",
+    businessTaxInsuranceSub:
+      "Отделно от списъка „Разходи“; не влизат в 15% резерв (той е върху пълния приход)",
     taxReserve: "Резерв за данъци",
     taxSubBusiness: "15% от бизнес прихода",
     taxSubPersonal: "Не се моделира тук",
-    annualHint: (s: string) => `≈ ${s} / г. при стабилен приход`,
+    taxReserveBreakdownRegion: "Разбивка на резерва за данъци",
+    taxReserveBreakdownExplain:
+      "Базата е общият месечен бизнес приход (нормализиран). Разходите по списъка и сумите от картата „Данъци и осигуровки“ не намаляват тази база.",
+    taxReserveBaseLabel: "База (общ месечен приход)",
+    taxReserveRateLabel: "Процент резерв",
+    taxReserveResultLabel: "Резултат (месечно)",
     freeMoney: "Свободни пари",
-    freeMoneyFormula: "Приход − разход − резерв за данъци",
+    freeMoneyFormulaBusiness:
+      "Приход − разход − данъци и осигуровки − резерв за данъци",
+    freeMoneyFormulaPersonal: "Приход − разход",
+    freeMoneyBreakdownRegion: "Разбивка на свободните пари",
+    freeMoneyStepIncome: "Общ приход",
+    freeMoneyStepExpenses: "Общ разход",
+    freeMoneyStepTaxInsurance: "Данъци и осигуровки",
+    freeMoneyStepReserve: "Резерв за данъци",
+    freeMoneyStepResult: "Свободни пари (резултат)",
+  },
+
+  taxInsurance: {
+    title: "Данъци и осигуровки",
+    intro:
+      "Част от бизнес бюджета (лв./мес.). Не се дублират в „Разходи“; резервът 15% се смята върху пълния бизнес приход, после тези суми се изваждат при свободните пари.",
+    kd: "КД",
+    dividendTax: "Данък дивидент",
+    dzpo: "ДЗПО",
+    zo: "ЗО",
+    doo: "ДОО",
+    dod: "ДОД",
+    sumHint: "Сума (месечно)",
   },
 
   templates: {
