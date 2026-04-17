@@ -80,7 +80,7 @@ export function buildMonthReportCsv({
   const monthLabel = formatMonthLabelBg(monthKey);
   const businessTaxInsurance = sumTaxInsuranceMonthly(taxInsurance);
   const businessSnapshot = snapshotBusiness(data.business, businessTaxInsurance);
-  const personalSnapshot = snapshotPersonal(data.personal as AccountBook);
+  const personalSnapshot = snapshotPersonal(data.personal);
   const detailRows = buildMonthReportRows(data);
 
   const lines: string[] = [];
