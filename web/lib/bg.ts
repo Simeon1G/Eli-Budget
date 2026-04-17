@@ -96,6 +96,14 @@ export const bg = {
     addNextMonth: "Празен следващ месец",
   },
 
+  reports: {
+    title: "Месечен отчет за Excel",
+    intro:
+      "Изберете година и месец, после свалете чист отчет (CSV), който се отваря директно в Excel като таблица.",
+    downloadButton: "Свали отчет",
+    selectedMonth: (monthLabel: string) => `За: ${monthLabel}`,
+  },
+
   entry: {
     perMonth: "/мес.",
     estPerMonth: " оцен./мес.",

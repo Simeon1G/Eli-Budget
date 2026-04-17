@@ -15,6 +15,7 @@ import { FinancialOverview } from "./financial-overview";
 import { MonthNavigator } from "./month-navigator";
 import { TaxInsuranceCard } from "./tax-insurance-card";
 import { TransferSection } from "./transfer-section";
+import { MonthReportExport } from "./month-report-export";
 
 export function BudgetDashboard() {
   const { data, ready, resetAccount, selectedMonth, taxInsurance, setTaxInsurance } =
@@ -96,6 +97,8 @@ export function BudgetDashboard() {
       </header>
 
       <MonthNavigator />
+
+      <MonthReportExport />
 
       <FinancialOverview />
 

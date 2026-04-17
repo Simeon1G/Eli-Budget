@@ -51,6 +51,7 @@ type BudgetContextValue = {
   selectedMonth: string;
   setSelectedMonth: (key: string) => void;
   sortedMonthKeys: string[];
+  getMonthPayload: (key: string) => MonthPayload;
   addEmptyMonth: (key: string) => void;
   isCurrentCalendarMonth: boolean;
   templates: PersistedTemplates;
@@ -173,6 +174,11 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
 
   const sortedMonthKeys = useMemo(
     () => sortMonthKeysDesc(Object.keys(months)),
+    [months],
+  );
+
+  const getMonthPayload = useCallback(
+    (key: string) => months[key] ?? emptyMonthPayload(),
     [months],
   );
 
@@ -429,6 +435,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       selectedMonth,
       setSelectedMonth,
       sortedMonthKeys,
+      getMonthPayload,
       addEmptyMonth,
       isCurrentCalendarMonth,
       templates,
@@ -454,6 +461,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       selectedMonth,
       setSelectedMonth,
       sortedMonthKeys,
+      getMonthPayload,
       addEmptyMonth,
       isCurrentCalendarMonth,
       templates,
