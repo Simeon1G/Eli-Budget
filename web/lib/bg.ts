@@ -97,10 +97,10 @@ export const bg = {
   },
 
   reports: {
-    title: "Месечен отчет за Excel",
+    title: "Месечен PDF отчет",
     intro:
-      "Изберете година и месец, после свалете чист отчет (CSV), който се отваря директно в Excel като таблица.",
-    downloadButton: "Свали отчет",
+      "Изберете година и месец, после свалете чист PDF отчет за споделяне с счетоводител или партньор.",
+    downloadButton: "Свали PDF отчет",
     selectedMonth: (monthLabel: string) => `За: ${monthLabel}`,
   },
 
