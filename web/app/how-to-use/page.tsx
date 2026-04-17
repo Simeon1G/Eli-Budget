@@ -57,6 +57,55 @@ export default function HowToUsePage() {
               различни периоди на една скала.
             </li>
           </ul>
+          <div className="rounded-xl border border-amber-300/70 bg-amber-50/70 p-4 text-sm leading-relaxed text-amber-950 dark:border-amber-800/60 dark:bg-amber-950/30 dark:text-amber-100">
+            <p className="font-semibold">Важно за съхранението на данни</p>
+            <p className="mt-2">
+              Данните са локални за <strong>конкретния браузър</strong> и
+              <strong> конкретния профил</strong> на това устройство
+              (localStorage). Това означава: ако смените браузъра (напр. от
+              Chrome към Safari), ползвате инкогнито/Private режим или друго
+              устройство, няма да виждате същите запазени записи.
+            </p>
+            <p className="mt-2">
+              Възможна е загуба на данни при почистване на browser/site data,
+              настройка „clear data on exit“, външни cleaner/optimizer програми,
+              преинсталация/повреда на браузър профил, системна миграция или
+              промяна на домейн/адрес на приложението.
+            </p>
+          </div>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="font-display text-xl font-bold text-stone-900 dark:text-stone-100">
+            Препоръки за безопасност и резервни копия
+          </h2>
+          <ul className="list-inside list-disc space-y-2 text-sm leading-relaxed sm:list-outside sm:pl-5">
+            <li>
+              Ползвайте приложението винаги в <strong>един и същ браузър</strong> и
+              един и същ профил.
+            </li>
+            <li>
+              <strong>Не ползвайте</strong> Incognito/Private режим за работа с
+              бюджета.
+            </li>
+            <li>
+              <strong>Не изчиствайте</strong> cookies/site data/cache за този сайт
+              и не включвайте „clear data on exit“.
+            </li>
+            <li>
+              Избягвайте автоматични cleaner инструменти, които трият данни от
+              браузъра.
+            </li>
+            <li>
+              Ползвайте <strong>един и същ адрес</strong> на приложението, за да
+              останат данните в същото localStorage пространство.
+            </li>
+            <li>
+              Практика за резервно копие: поне веднъж месечно записвайте важните
+              крайни суми (приход, разход, свободни пари) извън приложението
+              (например в отделен документ/PDF отчет).
+            </li>
+          </ul>
         </section>
 
         <section className="space-y-3">
