@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   ACCOUNTS,
   type AccountId,
@@ -77,14 +78,27 @@ export function BudgetDashboard() {
             <p className="font-display text-[0.7rem] font-bold uppercase tracking-[0.35em] text-orange-800/90 dark:text-orange-300/90">
               {bg.dashboard.eyebrow}
             </p>
-            <h1 className="font-display mt-2 text-3xl font-bold tracking-tight text-stone-900 dark:text-stone-50 sm:text-4xl">
-              {bg.dashboard.title}
+            <h1 className="font-display mt-2 flex flex-wrap items-center justify-between gap-4 text-3xl font-bold tracking-tight text-stone-900 dark:text-stone-50 sm:text-4xl">
+              <span className="inline-flex items-center gap-3">
+                <Image
+                  src="/delliesign-logo.png"
+                  alt="Delliesign logo"
+                  width={170}
+                  height={66}
+                  className="h-10 w-auto rounded-sm bg-white/80 p-1"
+                />
+                <span>Delliesign</span>
+              </span>
+              <span className="flex items-center gap-3">
+                <span
+                  className="inline-block h-4 w-4 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 shadow-[0_0_0_2px_rgba(255,255,255,0.85),0_2px_8px_rgba(234,88,12,0.45)] dark:shadow-[0_0_0_2px_rgba(28,25,23,0.9),0_2px_8px_rgba(234,88,12,0.5)]"
+                  aria-hidden
+                />
+                <span>Елена</span>
+              </span>
             </h1>
             <p className="mt-2 max-w-lg text-sm leading-relaxed text-stone-600 dark:text-stone-400">
-              {bg.dashboard.subtitle(
-                ACCOUNTS.business.label,
-                ACCOUNTS.personal.label,
-              )}
+              {bg.dashboard.subtitle}
             </p>
           </div>
           <Link

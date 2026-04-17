@@ -51,10 +51,9 @@ export const bg = {
   },
 
   dashboard: {
-    eyebrow: "Домашен бюджет",
+    eyebrow: "Ellie's budget app",
     title: "Delliesign · Елена",
-    subtitle: (biz: string, pers: string) =>
-      `Следете бизнеса (${biz}) и личното (${pers}) на едно място. Данните остават само в този браузър.`,
+    subtitle: "Следете бизнеса Delliesign и Елена на едно място.",
     howToUse: "Как се ползва",
     accountTabs: "Сметка",
     resetConfirm: (short: string, label: string) =>
@@ -99,7 +98,7 @@ export const bg = {
   reports: {
     title: "Месечен PDF отчет",
     intro:
-      "Изберете година и месец, после свалете чист PDF отчет за споделяне с счетоводител или партньор.",
+      "Изберете година и месец, после свалете чист PDF отчет за споделяне със счетоводител или партньор.",
     downloadButton: "Свали PDF отчет",
     selectedMonth: (monthLabel: string) => `За: ${monthLabel}`,
   },
